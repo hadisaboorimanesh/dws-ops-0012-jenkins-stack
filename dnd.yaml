@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-data
+  namespace: jenkins-stack
+  labels:
+    app.kubernetes.io/name: docker
+    app.kubernetes.io/part-of: jenkins
+    app.kubernetes.io/scope: devops-with-saeid
+    app.kubernetes.io/created-by: saboorimanesh
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-certs
+  namespace: jenkins-stack
+  labels:
+    app.kubernetes.io/name: docker
+    app.kubernetes.io/part-of: jenkins
+    app.kubernetes.io/scope: devops-with-saeid
+    app.kubernetes.io/created-by: saboorimanesh
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 15Mi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-certs-client
+  namespace: jenkins-stack
+  labels:
+    app.kubernetes.io/name: docker
+    app.kubernetes.io/part-of: jenkins
+    app.kubernetes.io/scope: devops-with-saeid
+    app.kubernetes.io/created-by: saboorimanesh
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker
+  namespace: jenkins-stack
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: docker
+    app.kubernetes.io/part-of: jenkins
+    app.kubernetes.io/scope: devops-with-saeid
+    app.kubernetes.io/created-by: saboorimanesh
+  ports:
+  - protocol: TCP
+    port: 2376
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker
+  namespace: jenkins-stack
+  labels:
+    app.kubernetes.io/name: docker
+    app.kubernetes.io/part-of: jenkins
+    app.kubernetes.io/scope: devops-with-saeid
+    app.kubernetes.io/created-by: saboorimanesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docker
+      app.kubernetes.io/part-of: jenkins
+      app.kubernetes.io/scope: devops-with-saeid
+      app.kubernetes.io/created-by: saboorimanesh
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: docker
+        app.kubernetes.io/part-of: jenkins
+        app.kubernetes.io/scope: devops-with-saeid
+        app.kubernetes.io/created-by: saboorimanesh
+    spec:
+      containers:
+        - name: docker
+          image: docker:dind
+          args: ["--insecure-registry", "registry:5000"] 
+          ports:
+            - containerPort: 2376
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/docker
+            - name: certs
+              mountPath: /certs
+            - name: certs-client
+              mountPath: /certs/client
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: docker-data
+        - name: certs
+          persistentVolumeClaim:
+            claimName: docker-certs
+        - name: certs-client
+          persistentVolumeClaim:
+            claimName: docker-certs-client
+          
